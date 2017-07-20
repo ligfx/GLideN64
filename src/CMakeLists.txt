@@ -96,6 +96,28 @@ set(GLideN64_SOURCES
   Graphics/OpenGLContext/GLSL/glsl_Utils.cpp
 )
 
+# generate Revision.h
+find_package(Git)
+execute_process(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+      OUTPUT_VARIABLE git_revision
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/Revision.h" "#define PLUGIN_REVISION \"${git_revision}\"\n#define PLUGIN_REVISION_W L\"${git_revision}\"")
+
+# make sure version information gets re-run when the current Git HEAD changes
+execute_process(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} COMMAND ${GIT_EXECUTABLE} rev-parse --git-path HEAD
+    OUTPUT_VARIABLE git_head_filename
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${git_head_filename}")
+
+execute_process(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} COMMAND ${GIT_EXECUTABLE} rev-parse --symbolic-full-name HEAD
+    OUTPUT_VARIABLE git_head_symbolic_name
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMAND ${GIT_EXECUTABLE} rev-parse --git-path ${git_head_symbolic_name}
+    OUTPUT_VARIABLE git_head_symbolic_filename
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${git_head_symbolic_filename}")
+
 #check if we're running on Raspberry Pi
 if(EXISTS "/opt/vc/include/bcm_host.h")
   message("bcm_host.h found")
@@ -121,7 +143,7 @@ if(MUPENPLUSAPI)
 	-DMUPENPLUSAPI
 		-DTXFILTER_LIB
   )
-  include_directories( . inc )
+  include_directories( . inc "${CMAKE_CURRENT_BINARY_DIR}" )
   set(GLideN64_SOURCES_UNIX
 	MupenPlusPluginAPI.cpp
 	mupenplus/Config_mupenplus.cpp
